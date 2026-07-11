@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CosmoStudy</title>
+<style>
+  :root{
+    --pink:#ff6fa5;
+    --pink-dark:#e8558f;
+    --lavender:#a78bfa;
+    --bg1:#ffe4f0;
+    --bg2:#e9e3ff;
+    --card-bg:#ffffff;
+    --text:#3a2e3f;
+    --muted:#8a7a90;
+    --green:#3ecf8e;
+    --red:#ff5c7a;
+    --gold:#ffb648;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    color:var(--text);
+    padding:20px 16px 100px;
+  }
+  .app{ width:100%; max-width:460px; }
+
+  /* ---- Topbar persistente ---- */
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+    gap:10px;
+  }
+  .brand{ font-weight:800; font-size:1.3rem; display:flex; align-items:center; gap:6px; }
+  .stats{ display:flex; gap:10px; align-items:center; }
+  .pill{
+    background:var(--card-bg);
+    border-radius:20px;
+    padding:6px 12px;
+    font-size:.85rem;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    gap:5px;
+    box-shadow:0 2px 8px rgba(160,100,140,.12);
+    white-space:nowrap;
+  }
+  .pill.streak{color:#ff8a3d;}
+  .pill.level{color:var(--lavender);}
+
+  .xp-bar-wrap{
+    background:rgba(255,255,255,.6);
+    border-radius:20px;
+    height:8px;
+    overflow:hidden;
+    margin-bottom:20px;
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.08);
+  }
+  .xp-bar{
+    height:100%;
+    background:linear-gradient(90deg,var(--pink),var(--lavender));
+    border-radius:20px;
+    transition:width .4s ease;
+    width:0%;
+  }
+
+  /* ---- Paginas ---- */
+  .page{ display:none; }
+  .page.active{ display:block; animation:pageIn .25s ease; }
+  @keyframes pageIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .page-title{ font-size:1.3rem; font-weight:800; margin:4px 0 4px; }
+  .page-sub{ color:var(--muted); font-size:.85rem; margin:0 0 18px; }
+  .section-block{ margin-bottom:26px; }
+  .section-head{ font-weight:800; font-size:.9rem; margin-bottom:10px; }
+
+  /* ---- Home: nivel / anillo XP ---- */
+  .level-card{
+    background:#fff;
+    border-radius:20px;
+    padding:18px;
+    display:flex;
+    align-items:center;
+    gap:16px;
+    box-shadow:0 8px 24px rgba(160,100,140,.12);
+    margin-bottom:20px;
+    position:relative;
+  }
+  .xp-ring{ width:96px; height:96px; flex:none; transform:rotate(-90deg); }
+  .ring-bg{ fill:none; stroke:#f0e4ec; stroke-width:10; }
+  .ring-fg{ fill:none; stroke:url(#ringGradient); stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset .5s ease; }
+  .ring-center{
+    position:absolute; left:18px; top:18px; width:96px; height:96px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .ring-level{ font-size:1.5rem; font-weight:800; }
+  .ring-label{ font-size:.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .level-info{ flex:1; }
+  #xpToNext{ font-weight:700; font-size:.95rem; }
+  .level-sub{ font-size:.75rem; color:var(--muted); margin-top:2px; }
+
+  /* ---- Stat grid ---- */
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:22px; }
+  .stat-card{ background:#fff; border-radius:16px; padding:14px; box-shadow:0 4px 14px rgba(160,100,140,.1); text-align:center; }
+  .stat-num{ font-size:1.4rem; font-weight:800; color:var(--pink-dark); }
+  .stat-label{ font-size:.68rem; color:var(--muted); font-weight:600; margin-top:2px; }
+
+  /* ---- Week chart ---- */
+  .week-chart{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    height:120px; gap:6px; background:#fff; border-radius:16px; padding:14px 10px 10px;
+    box-shadow:0 4px 14px rgba(160,100,140,.1);
+  }
+  .week-bar-wrap{ display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; height:100%; justify-content:flex-end; }
+  .week-bar{ width:100%; max-width:22px; border-radius:6px 6px 2px 2px; background:linear-gradient(180deg,var(--pink),var(--lavender)); min-height:4px; }
+  .week-bar-label{ font-size:.65rem; color:var(--muted); font-weight:700; }
+  .week-bar-count{ font-size:.65rem; font-weight:700; color:var(--text); min-height:12px; }
+
+  /* ---- Topic bars (home) ---- */
+  .topic-bar-row{ margin-bottom:12px; }
+  .topic-bar-head{ display:flex; justify-content:space-between; font-size:.8rem; font-weight:700; margin-bottom:5px; }
+  .topic-bar-track{ background:#f0e4ec; border-radius:10px; height:8px; overflow:hidden; }
+  .topic-bar-fill{ height:100%; background:linear-gradient(90deg,var(--pink),var(--lavender)); border-radius:10px; }
+
+  .cta-btn{
+    width:100%; background:linear-gradient(90deg,var(--pink),var(--lavender)); color:#fff;
+    border:none; padding:16px; border-radius:16px; font-weight:800; font-size:1rem;
+    cursor:pointer; box-shadow:0 8px 20px rgba(255,111,165,.35);
+  }
+
+  /* ---- Estudiar ---- */
+  .today-note{ font-size:.82rem; color:var(--muted); margin:0 0 18px; }
+  .today-note strong{ color:var(--text); font-weight:800; }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+  .chip{
+    padding:8px 14px; border-radius:16px; background:#fff; border:1.5px solid #f0e4ec;
+    font-size:.78rem; font-weight:700; color:var(--muted); cursor:pointer;
+  }
+  .chip.active{ background:var(--pink); border-color:var(--pink); color:#fff; box-shadow:0 4px 10px rgba(255,111,165,.28); }
+
+  .card-topic{
+    font-size:.68rem; font-weight:800; color:var(--lavender); text-transform:uppercase;
+    letter-spacing:.05em; margin-bottom:12px;
+  }
+
+  .card{
+    background:var(--card-bg); border-radius:22px; padding:28px 24px;
+    box-shadow:0 10px 30px rgba(160,100,140,.18); min-height:280px;
+    display:flex; flex-direction:column; justify-content:center; position:relative;
+    animation:cardIn .35s ease;
+  }
+  @keyframes cardIn{ from{opacity:0; transform:translateY(14px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);} }
+
+  .question{ font-size:1.15rem; font-weight:700; line-height:1.4; margin-bottom:22px; }
+  .options{ display:flex; flex-direction:column; gap:10px; }
+  .opt-btn{
+    text-align:left; padding:14px 16px; border-radius:14px; border:2px solid #f0e4ec;
+    background:#fff; font-size:.98rem; font-weight:600; cursor:pointer; transition:all .15s ease; color:var(--text);
+  }
+  .opt-btn:hover{ border-color:var(--pink); }
+  .opt-btn.correct{ background:rgba(62,207,142,.15); border-color:var(--green); color:#1f7a52; }
+  .opt-btn.incorrect{ background:rgba(255,92,122,.15); border-color:var(--red); color:#b6304a; }
+  .opt-btn:disabled{ cursor:default; }
+
+  .flash-face{ text-align:center; }
+  .flash-front{ font-size:1.25rem; font-weight:800; margin-bottom:6px; }
+  .flash-hint{ color:var(--muted); font-size:.85rem; margin-bottom:20px; }
+  .flash-back{ font-size:1.05rem; background:#faf6ff; border-radius:14px; padding:16px; margin:16px 0 20px; line-height:1.5; }
+  .flip-btn{
+    background:linear-gradient(90deg,var(--pink),var(--lavender)); color:#fff; border:none;
+    padding:13px 20px; border-radius:14px; font-weight:700; font-size:.95rem; cursor:pointer; width:100%;
+  }
+  .rate-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .rate-btn{ border:none; padding:13px 8px; border-radius:14px; font-weight:700; font-size:.85rem; cursor:pointer; color:#fff; }
+  .rate-again{ background:#ff5c7a; }
+  .rate-hard{ background:#ffb648; }
+  .rate-good{ background:#5ec8f0; }
+  .rate-easy{ background:#3ecf8e; }
+
+  .feedback-msg{ text-align:center; font-weight:700; font-size:.9rem; margin-top:16px; min-height:20px; }
+  .feedback-msg.ok{ color:#1f7a52; }
+  .feedback-msg.no{ color:#b6304a; }
+
+  .next-btn{
+    margin-top:18px; width:100%; background:var(--text); color:#fff; border:none;
+    padding:13px; border-radius:14px; font-weight:700; cursor:pointer; display:none;
+  }
+
+  /* ---- Progreso ---- */
+  .heatmap-wrap{ background:#fff; border-radius:16px; padding:14px; box-shadow:0 4px 14px rgba(160,100,140,.1); overflow-x:auto; }
+  .heatmap-grid{ display:grid; grid-auto-flow:column; grid-template-rows:repeat(7,11px); gap:3px; }
+  .heat-cell{ width:11px; height:11px; border-radius:3px; background:#f0e4ec; }
+  .level-0{ background:#f0e4ec; }
+  .level-1{ background:#ffd3e3; }
+  .level-2{ background:#ff9dc0; }
+  .level-3{ background:#ff6fa5; }
+  .level-4{ background:#e8558f; }
+  .heat-legend{ display:flex; align-items:center; gap:4px; font-size:.7rem; color:var(--muted); margin-top:8px; }
+  .heat-legend .heat-cell{ width:10px; height:10px; }
+
+  .topic-table{ width:100%; border-collapse:collapse; font-size:.76rem; background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 4px 14px rgba(160,100,140,.1); }
+  .topic-table th{ text-align:left; color:var(--muted); font-weight:700; padding:9px 8px; border-bottom:2px solid #f0e4ec; font-size:.68rem; text-transform:uppercase; }
+  .topic-table td{ padding:9px 8px; border-bottom:1px solid #f5eef3; }
+
+  .weak-item{ background:#fff; border-radius:14px; padding:12px 14px; margin-bottom:8px; box-shadow:0 2px 8px rgba(160,100,140,.08); }
+  .weak-item-tema{ font-size:.66rem; color:var(--lavender); font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+  .weak-item-text{ font-size:.9rem; font-weight:600; margin-top:2px; }
+  .weak-item-acc{ font-size:.75rem; color:var(--red); font-weight:700; margin-top:4px; }
+  .about-text{ font-size:.82rem; color:var(--muted); line-height:1.5; }
+
+  /* ---- Ajustes ---- */
+  .settings-btn{
+    display:block; width:100%; padding:13px 14px; border-radius:14px; border:none; background:#fff;
+    box-shadow:0 2px 8px rgba(160,100,140,.1); font-weight:700; font-size:.88rem; margin-bottom:10px;
+    cursor:pointer; text-align:left; color:var(--text);
+  }
+  .settings-btn.danger{ color:var(--red); }
+  input[type=range]{ width:100%; accent-color:var(--pink); }
+  .slider-val{ font-size:.78rem; color:var(--muted); margin-top:6px; }
+
+  /* ---- Bottom nav ---- */
+  .bottom-nav{
+    position:fixed; bottom:0; left:0; right:0; background:#fff;
+    box-shadow:0 -4px 16px rgba(160,100,140,.14); display:flex; justify-content:space-around;
+    padding:8px 0 max(8px, env(safe-area-inset-bottom)); z-index:40;
+  }
+  .nav-btn{
+    background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:2px;
+    font-size:1.25rem; color:var(--muted); cursor:pointer; padding:4px 16px; border-radius:12px;
+  }
+  .nav-btn span{ font-size:.6rem; font-weight:700; }
+  .nav-btn.active{ color:var(--pink-dark); }
+
+  .toast{
+    position:fixed; top:18px; left:50%; transform:translateX(-50%) translateY(-40px);
+    background:var(--text); color:#fff; padding:10px 18px; border-radius:14px; font-weight:700;
+    font-size:.85rem; opacity:0; transition:all .3s ease; z-index:50;
+  }
+  .toast.show{ transform:translateX(-50%) translateY(0); opacity:1; }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">💄 CosmoStudy</div>
+    <div class="stats">
+      <div class="pill streak">🔥 <span id="streakVal">0</span></div>
+      <div class="pill level">✨ Nv <span id="levelVal">1</span></div>
+    </div>
+  </header>
+  <div class="xp-bar-wrap"><div class="xp-bar" id="xpBar"></div></div>
+
+  <main id="pages">
+
+    <!-- ===== HOME ===== -->
+    <section class="page active" id="page-home">
+      <h2 class="page-title">¡Hola! 👋</h2>
+      <p class="page-sub">Así va tu progreso en cosmetología</p>
+
+      <div class="level-card">
+        <svg class="xp-ring" viewBox="0 0 120 120">
+          <defs>
+            <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ff6fa5"/>
+              <stop offset="100%" stop-color="#a78bfa"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-bg" cx="60" cy="60" r="50"></circle>
+          <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="50"></circle>
+        </svg>
+        <div class="ring-center">
+          <div class="ring-level" id="ringLevel">1</div>
+          <div class="ring-label">nivel</div>
+        </div>
+        <div class="level-info">
+          <div id="xpToNext">0 / 40 XP</div>
+          <div class="level-sub">para el próximo nivel</div>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-num" id="homeAnswered">0</div><div class="stat-label">Preguntas respondidas</div></div>
+        <div class="stat-card"><div class="stat-num" id="homeAccuracy">0%</div><div class="stat-label">Precisión</div></div>
+        <div class="stat-card"><div class="stat-num" id="homeStreak">0</div><div class="stat-label">Racha actual 🔥</div></div>
+        <div class="stat-card"><div class="stat-num" id="homeMastered">0/0</div><div class="stat-label">Tarjetas dominadas</div></div>
+      </div>
+
+      <div class="section-block">
+        <div class="section-head">Actividad — últimos 7 días</div>
+        <div class="week-chart" id="weekChart"></div>
+      </div>
+
+      <div class="section-block">
+        <div class="section-head">Progreso por tema</div>
+        <div id="homeTopicBars"></div>
+      </div>
+
+      <button class="cta-btn" id="ctaStudy">Seguir estudiando →</button>
+    </section>
+
+    <!-- ===== ESTUDIAR ===== -->
+    <section class="page" id="page-study">
+      <h2 class="page-title">Estudiar</h2>
+      <p class="page-sub">Elegí un tema para practicar, o dejalo en "Todos" para repasar mezclado</p>
+      <p class="today-note">Hoy respondiste <strong id="todayCount">0</strong> preguntas</p>
+
+      <div class="chips" id="topicChips"></div>
+
+      <div class="card" id="cardArea"></div>
+      <button class="next-btn" id="nextBtn">Siguiente →</button>
+    </section>
+
+    <!-- ===== PROGRESO ===== -->
+    <section class="page" id="page-progress">
+      <h2 class="page-title">Tu progreso</h2>
+
+      <div class="section-block">
+        <div class="section-head">Constancia (últimos 70 días)</div>
+        <div class="heatmap-wrap"><div class="heatmap-grid" id="heatmapGrid"></div></div>
+        <div class="heat-legend">
+          Menos
+          <span class="heat-cell level-0"></span>
+          <span class="heat-cell level-1"></span>
+          <span class="heat-cell level-2"></span>
+          <span class="heat-cell level-3"></span>
+          <span class="heat-cell level-4"></span>
+          Más
+        </div>
+      </div>
+
+      <div class="section-block">
+        <div class="section-head">Detalle por tema</div>
+        <table class="topic-table">
+          <thead><tr><th>Tema</th><th>Dom.</th><th>Curso</th><th>Nuevas</th><th>Precisión</th></tr></thead>
+          <tbody id="topicTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="section-block">
+        <div class="section-head">Para reforzar</div>
+        <div id="weakList"></div>
+      </div>
+    </section>
+
+    <!-- ===== AJUSTES ===== -->
+    <section class="page" id="page-settings">
+      <h2 class="page-title">Ajustes</h2>
+
+      <div class="section-block">
+        <div class="section-head">Tarjetas nuevas por sesión</div>
+        <input type="range" id="newCardsSlider" min="2" max="12" step="1">
+        <div class="slider-val"><span id="newCardsVal">6</span> tarjetas nuevas antes de repasar pendientes</div>
+      </div>
+
+      <div class="section-block">
+        <div class="section-head">Datos</div>
+        <button class="settings-btn" id="exportBtn">⬇️ Exportar progreso (JSON)</button>
+        <button class="settings-btn danger" id="resetBtn">🗑️ Reiniciar todo el progreso</button>
+      </div>
+
+      <div class="section-block">
+        <div class="section-head">Acerca de</div>
+        <p class="about-text">CosmoStudy — hecha a medida para estudiar cosmetología con repaso espaciado (SM-2) y gamificación. El progreso se guarda solo en este navegador, en este dispositivo.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-page="home">🏠<span>Home</span></button>
+    <button class="nav-btn" data-page="study">📚<span>Estudiar</span></button>
+    <button class="nav-btn" data-page="progress">📊<span>Progreso</span></button>
+    <button class="nav-btn" data-page="settings">⚙️<span>Ajustes</span></button>
+  </nav>
+
+</div>
+
+<script>
+/* ============================================================
+   CONTENIDO DE EJEMPLO — REEMPLAZAR CUANDO LLEGUEN LOS PDFs
+   Cada card: { id, tema, tipo: 'mcq' | 'tf' | 'flash',
+                pregunta, opciones (mcq/tf), correcta (index o bool),
+                frente/dorso (flash), explicacion (opcional) }
+   ============================================================ */
+const CONTENT = [
+  { id:'c1', tema:'Tipos de piel', tipo:'mcq',
+    pregunta:'¿Qué tipo de piel se caracteriza por brillo generalizado y poros dilatados?',
+    opciones:['Piel seca','Piel grasa','Piel mixta','Piel sensible'],
+    correcta:1,
+    explicacion:'La piel grasa produce sebo en exceso, dando brillo y poros más visibles.' },
+
+  { id:'c2', tema:'Tipos de piel', tipo:'tf',
+    pregunta:'La piel mixta tiene zona T (frente, nariz, mentón) grasa y mejillas más secas o normales.',
+    correcta:true,
+    explicacion:'Exacto: la combinación de zona T grasa con mejillas más secas o normales es justamente lo que define a la piel mixta, el tipo más común.' },
+
+  { id:'c3', tema:'Tipos de piel', tipo:'flash',
+    frente:'Piel sensible',
+    dorso:'Piel que reacciona con facilidad (rojeces, ardor, picazón) ante productos, cambios de temperatura o fricción. Requiere fórmulas hipoalergénicas y sin fragancia.' },
+
+  { id:'c4', tema:'Activos', tipo:'mcq',
+    pregunta:'¿Qué activo es más conocido por su capacidad de retener agua e hidratar en profundidad?',
+    opciones:['Ácido salicílico','Ácido hialurónico','Retinol','Niacinamida'],
+    correcta:1,
+    explicacion:'El ácido hialurónico puede retener hasta 1000 veces su peso en agua.' },
+
+  { id:'c5', tema:'Activos', tipo:'mcq',
+    pregunta:'¿Qué activo es exfoliante químico BHA, ideal para piel grasa y con tendencia acneica?',
+    opciones:['Ácido hialurónico','Vitamina C','Ácido salicílico','Manteca de karité'],
+    correcta:2,
+    explicacion:'El ácido salicílico es liposoluble: penetra el poro y controla la producción de sebo, por eso es la primera opción en pieles grasas o con acné.' },
+
+  { id:'c6', tema:'Activos', tipo:'flash',
+    frente:'Niacinamida',
+    dorso:'Forma activa de la vitamina B3. Regula la producción de sebo, mejora la barrera cutánea, atenúa manchas y poros. Se tolera bien combinada con casi todo.' },
+
+  { id:'c7', tema:'Activos', tipo:'tf',
+    pregunta:'El retinol se recomienda usar de día y sin protector solar.',
+    correcta:false,
+    explicacion:'El retinol fotosensibiliza la piel: se usa de noche y SIEMPRE con SPF al día siguiente.' },
+
+  { id:'c8', tema:'Rutina', tipo:'mcq',
+    pregunta:'¿Cuál es el orden correcto en una rutina de skincare de día?',
+    opciones:[
+      'Protector solar → Limpiador → Hidratante → Sérum',
+      'Limpiador → Sérum → Hidratante → Protector solar',
+      'Hidratante → Limpiador → Protector solar → Sérum',
+      'Sérum → Protector solar → Limpiador → Hidratante'
+    ],
+    correcta:1,
+    explicacion:'Se limpia primero, se aplican los activos más livianos (sérum), se sella con hidratante y se protege al final con protector solar: de menos a más denso.' },
+
+  { id:'c9', tema:'Rutina', tipo:'flash',
+    frente:'Regla de textura en skincare',
+    dorso:'Se aplican los productos de textura más liviana a más pesada: agua/esencia → sérum → crema/hidratante → aceite (si corresponde) → protector solar.' },
+
+  { id:'c10', tema:'Rutina', tipo:'tf',
+    pregunta:'El protector solar debe ser el último paso de la rutina de día, antes del maquillaje.',
+    correcta:true,
+    explicacion:'El protector solar va siempre al final del skincare para no diluirse ni perder cobertura, y antes de cualquier producto de maquillaje.' },
+
+  { id:'c11', tema:'Maquillaje', tipo:'mcq',
+    pregunta:'¿Qué producto se usa para unificar el tono de piel antes de la base?',
+    opciones:['Corrector','Prebase (primer)','Polvo compacto','Iluminador'],
+    correcta:1,
+    explicacion:'El primer prepara y uniforma la superficie de la piel (poros, textura, tono) para que la base se aplique pareja y dure más.' },
+
+  { id:'c12', tema:'Maquillaje', tipo:'flash',
+    frente:'Contouring',
+    dorso:'Técnica que usa tonos más oscuros y más claros que la piel para crear sombras y luces, marcando o suavizando rasgos del rostro.' },
+
+  { id:'c13', tema:'Maquillaje', tipo:'mcq',
+    pregunta:'¿Qué corrector usarías para neutralizar ojeras violáceas/azuladas?',
+    opciones:['Verde','Naranja/durazno','Morado','Amarillo'],
+    correcta:1,
+    explicacion:'Los tonos cálidos (durazno/naranja) neutralizan ojeras azul-violáceas por teoría del color complementario.' },
+
+  { id:'c14', tema:'Ingredientes a evitar', tipo:'tf',
+    pregunta:'El alcohol denat. en altas concentraciones puede resecar e irritar la piel.',
+    correcta:true,
+    explicacion:'En concentraciones altas actúa como solvente agresivo y remueve lípidos naturales de la piel, debilitando la barrera cutánea.' },
+
+  { id:'c15', tema:'Ingredientes a evitar', tipo:'flash',
+    frente:'Comedogénico',
+    dorso:'Se dice de un ingrediente o producto con tendencia a obstruir los poros y favorecer la aparición de comedones (puntos negros/blancos).' },
+
+  { id:'c16', tema:'Higiene y herramientas', tipo:'mcq',
+    pregunta:'¿Cada cuánto se recomienda lavar las brochas de maquillaje de uso frecuente?',
+    opciones:['Una vez al año','Cada 7-10 días','Nunca, solo reemplazar','Cada 6 meses'],
+    correcta:1,
+    explicacion:'Las brochas acumulan grasa, restos de producto y bacterias; lavarlas cada 7-10 días evita brotes y mantiene el rendimiento del maquillaje.' },
+
+  { id:'c17', tema:'Tipos de piel', tipo:'mcq',
+    pregunta:'¿Qué caracteriza a la piel deshidratada (distinto de piel seca)?',
+    opciones:[
+      'Falta de agua, puede darse incluso en piel grasa',
+      'Falta de grasa únicamente',
+      'Es siempre piel sensible',
+      'Solo ocurre en invierno'
+    ],
+    correcta:0,
+    explicacion:'La deshidratación es falta de agua (puede afectar cualquier tipo de piel); la piel seca es falta de lípidos, una condición más estructural.' },
+
+  { id:'c18', tema:'Activos', tipo:'flash',
+    frente:'Vitamina C (ácido ascórbico)',
+    dorso:'Antioxidante que ilumina, ayuda a unificar tono y estimula colágeno. Se recomienda usar de día, protegida de la luz, y combinada con SPF.' },
+
+  { id:'c19', tema:'Rutina', tipo:'mcq',
+    pregunta:'¿Qué paso NO debería faltar nunca en una rutina de día, sin importar el tipo de piel?',
+    opciones:['Retinol','Exfoliante físico','Protector solar','Contorno de ojos'],
+    correcta:2,
+    explicacion:'El daño solar es acumulativo sin importar el tipo de piel: el protector solar es el único paso realmente no negociable.' },
+
+  { id:'c20', tema:'Maquillaje', tipo:'tf',
+    pregunta:'Aplicar polvo translúcido ayuda a fijar la base y reducir el brillo.',
+    correcta:true,
+    explicacion:'El polvo suelto sella la base evitando que se mueva y absorbe el exceso de grasa, prolongando la duración del maquillaje.' },
+];
+/* ============================================================
+   FIN DEL BLOQUE DE CONTENIDO
+   ============================================================ */
+
+const STORAGE_KEY = 'cosmostudy_progress_v2';
+const MASTER_INTERVAL = 21; // dias de intervalo a partir de los cuales una card se considera "dominada"
+
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function addDays(iso, days){
+  const d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0,10);
+}
+
+function loadProgress(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){
+    try{
+      const p = JSON.parse(raw);
+      p.cards = p.cards || {};
+      p.dailyLog = p.dailyLog || {};
+      p.settings = p.settings || { newCardsPerDay:6 };
+      p.totalAnswered = p.totalAnswered || 0;
+      p.totalCorrect = p.totalCorrect || 0;
+      p.xp = p.xp || 0;
+      p.streak = p.streak || 0;
+      p.longestStreak = p.longestStreak || 0;
+      return p;
+    }catch(e){ /* fall through */ }
+  }
+  return {
+    cards:{},
+    xp:0,
+    streak:0,
+    longestStreak:0,
+    lastStudyDate:null,
+    totalAnswered:0,
+    totalCorrect:0,
+    dailyLog:{},
+    settings:{ newCardsPerDay:6 }
+  };
+}
+function saveProgress(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); }
+
+let progress = loadProgress();
+let currentCard = null;
+let studyFilter = null;
+
+function ensureCardState(id){
+  if(!progress.cards[id]){
+    progress.cards[id] = { repetition:0, interval:0, ease:2.5, nextReview:todayISO(), seen:false, timesSeen:0, timesCorrect:0, lastQuality:null };
+  }
+  return progress.cards[id];
+}
+
+/* ---------- SM-2 ---------- */
+function applySM2(id, quality){
+  const st = ensureCardState(id);
+  st.seen = true;
+  if(quality < 3){
+    st.repetition = 0;
+    st.interval = 1;
+  } else {
+    st.repetition += 1;
+    if(st.repetition === 1) st.interval = 1;
+    else if(st.repetition === 2) st.interval = 6;
+    else st.interval = Math.round(st.interval * st.ease);
+  }
+  st.ease = Math.max(1.3, st.ease + (0.1 - (5-quality)*(0.08+(5-quality)*0.02)));
+  st.nextReview = addDays(todayISO(), st.interval);
+}
+
+/* ---------- XP / Nivel ---------- */
+function xpForQuality(quality){
+  if(quality >= 5) return 15;
+  if(quality === 4) return 10;
+  if(quality === 3) return 5;
+  if(quality === 2) return 2;
+  return 0;
+}
+function levelFromXp(xp){ return Math.floor(Math.sqrt(xp/40)) + 1; }
+function xpForLevel(level){ return Math.pow(level-1, 2) * 40; }
+
+function registerStudyToday(){
+  const today = todayISO();
+  if(progress.lastStudyDate === today) return;
+  const yesterday = addDays(today, -1);
+  if(progress.lastStudyDate === yesterday) progress.streak += 1;
+  else progress.streak = 1;
+  progress.longestStreak = Math.max(progress.longestStreak, progress.streak);
+  progress.lastStudyDate = today;
+}
+
+function pruneDailyLog(){
+  const cutoff = addDays(todayISO(), -90);
+  Object.keys(progress.dailyLog).forEach(d=>{ if(d < cutoff) delete progress.dailyLog[d]; });
+}
+
+/* ---------- Registrar respuesta (motor central) ---------- */
+function answerCard(card, quality){
+  const prevLevel = levelFromXp(progress.xp);
+  const st = ensureCardState(card.id);
+
+  applySM2(card.id, quality);
+
+  const correct = quality >= 3;
+  st.timesSeen += 1;
+  if(correct) st.timesCorrect += 1;
+  st.lastQuality = quality;
+
+  progress.totalAnswered += 1;
+  if(correct) progress.totalCorrect += 1;
+
+  const t = todayISO();
+  if(!progress.dailyLog[t]) progress.dailyLog[t] = { answered:0, correct:0, xp:0 };
+  progress.dailyLog[t].answered += 1;
+  if(correct) progress.dailyLog[t].correct += 1;
+
+  const gained = xpForQuality(quality);
+  progress.dailyLog[t].xp += gained;
+  progress.xp += gained;
+
+  registerStudyToday();
+  pruneDailyLog();
+  saveProgress();
+  updateHeader();
+  updateTodayPill();
+
+  if(gained > 0) showToast('+' + gained + ' XP');
+  const newLevel = levelFromXp(progress.xp);
+  if(newLevel > prevLevel) setTimeout(()=> showToast('🎉 ¡Subiste a nivel ' + newLevel + '!'), 700);
+}
+
+/* ---------- Estadisticas ---------- */
+function topicStats(){
+  const stats = {};
+  CONTENT.forEach(c=>{
+    if(!stats[c.tema]) stats[c.tema] = { total:0, mastered:0, learning:0, nuevo:0, seen:0, correct:0 };
+    const s = stats[c.tema];
+    s.total += 1;
+    const st = progress.cards[c.id];
+    if(!st || !st.seen) s.nuevo += 1;
+    else if(st.interval >= MASTER_INTERVAL) s.mastered += 1;
+    else s.learning += 1;
+    if(st){ s.seen += (st.timesSeen||0); s.correct += (st.timesCorrect||0); }
+  });
+  return stats;
+}
+
+/* ---------- Cola de cards (SM-2) ---------- */
+function pickNextCard(pool){
+  pool = (pool && pool.length) ? pool : CONTENT;
+  const today = todayISO();
+  const due = [], fresh = [], upcoming = [];
+  pool.forEach(c=>{
+    const st = ensureCardState(c.id);
+    if(!st.seen){ fresh.push(c); return; }
+    if(st.nextReview <= today) due.push(c);
+    else upcoming.push({ card:c, nextReview:st.nextReview });
+  });
+  if(due.length) return due[Math.floor(Math.random()*due.length)];
+  if(fresh.length){
+    const n = progress.settings.newCardsPerDay || 6;
+    return fresh[Math.floor(Math.random()*Math.min(n, fresh.length))];
+  }
+  if(upcoming.length){
+    upcoming.sort((a,b)=> a.nextReview < b.nextReview ? -1 : 1);
+    return upcoming[0].card;
+  }
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+/* ---------- UI comunes ---------- */
+function updateHeader(){
+  const level = levelFromXp(progress.xp);
+  const xpBase = xpForLevel(level);
+  const xpNext = xpForLevel(level+1);
+  const pct = Math.min(100, Math.round(((progress.xp - xpBase) / (xpNext - xpBase)) * 100));
+  document.getElementById('levelVal').textContent = level;
+  document.getElementById('streakVal').textContent = progress.streak;
+  document.getElementById('xpBar').style.width = pct + '%';
+}
+
+function updateTodayPill(){
+  const el = document.getElementById('todayCount');
+  if(el) el.textContent = (progress.dailyLog[todayISO()]||{}).answered || 0;
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=> t.classList.remove('show'), 1600);
+}
+
+/* ---------- HOME ---------- */
+function renderHome(){
+  const stats = topicStats();
+  let mastered = 0, total = 0;
+  Object.values(stats).forEach(s=>{ mastered += s.mastered; total += s.total; });
+
+  document.getElementById('homeAnswered').textContent = progress.totalAnswered;
+  const acc = progress.totalAnswered ? Math.round(progress.totalCorrect/progress.totalAnswered*100) : 0;
+  document.getElementById('homeAccuracy').textContent = acc + '%';
+  document.getElementById('homeStreak').textContent = progress.streak;
+  document.getElementById('homeMastered').textContent = mastered + '/' + total;
+
+  const level = levelFromXp(progress.xp);
+  const base = xpForLevel(level);
+  const next = xpForLevel(level+1);
+  const pct = Math.min(100, Math.round((progress.xp-base)/(next-base)*100));
+  document.getElementById('ringLevel').textContent = level;
+  document.getElementById('xpToNext').textContent = (progress.xp-base) + ' / ' + (next-base) + ' XP';
+  const circumference = 2*Math.PI*50;
+  const ring = document.getElementById('ringFg');
+  ring.style.strokeDasharray = circumference;
+  ring.style.strokeDashoffset = circumference * (1 - pct/100);
+
+  renderWeekChart();
+  renderTopicBarsCompact(stats);
+}
+
+function renderWeekChart(){
+  const wrap = document.getElementById('weekChart');
+  wrap.innerHTML = '';
+  const labels = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const days = [];
+  for(let i=6;i>=0;i--) days.push(addDays(todayISO(), -i));
+  const counts = days.map(d=> (progress.dailyLog[d]||{}).answered || 0);
+  const max = Math.max(1, ...counts);
+  const maxPx = 68;
+
+  days.forEach((d,i)=>{
+    const dow = new Date(d+'T00:00:00').getDay();
+    const col = document.createElement('div');
+    col.className = 'week-bar-wrap';
+
+    const countEl = document.createElement('div');
+    countEl.className = 'week-bar-count';
+    countEl.textContent = counts[i] > 0 ? counts[i] : '';
+
+    const bar = document.createElement('div');
+    bar.className = 'week-bar';
+    const px = counts[i] === 0 ? 4 : Math.max(6, Math.round(counts[i]/max*maxPx));
+    bar.style.height = px + 'px';
+
+    const label = document.createElement('div');
+    label.className = 'week-bar-label';
+    label.textContent = labels[dow];
+
+    col.appendChild(countEl);
+    col.appendChild(bar);
+    col.appendChild(label);
+    wrap.appendChild(col);
+  });
+}
+
+function renderTopicBarsCompact(stats){
+  const wrap = document.getElementById('homeTopicBars');
+  wrap.innerHTML = '';
+  Object.entries(stats).forEach(([tema, s])=>{
+    const pct = Math.round(s.mastered/s.total*100);
+    const row = document.createElement('div');
+    row.className = 'topic-bar-row';
+    row.innerHTML =
+      '<div class="topic-bar-head"><span>' + tema + '</span><span>' + s.mastered + '/' + s.total + '</span></div>' +
+      '<div class="topic-bar-track"><div class="topic-bar-fill" style="width:' + pct + '%"></div></div>';
+    wrap.appendChild(row);
+  });
+}
+
+/* ---------- ESTUDIAR ---------- */
+function renderTopicChips(){
+  const wrap = document.getElementById('topicChips');
+  wrap.innerHTML = '';
+  const temas = [...new Set(CONTENT.map(c=>c.tema))];
+
+  const allChip = document.createElement('button');
+  allChip.className = 'chip' + (studyFilter===null ? ' active' : '');
+  allChip.textContent = 'Todos';
+  allChip.onclick = ()=>{ studyFilter = null; renderTopicChips(); renderCard(); };
+  wrap.appendChild(allChip);
+
+  temas.forEach(tema=>{
+    const chip = document.createElement('button');
+    chip.className = 'chip' + (studyFilter===tema ? ' active' : '');
+    chip.textContent = tema;
+    chip.onclick = ()=>{ studyFilter = tema; renderTopicChips(); renderCard(); };
+    wrap.appendChild(chip);
+  });
+}
+
+function renderCard(){
+  const pool = studyFilter ? CONTENT.filter(c=>c.tema===studyFilter) : CONTENT;
+  currentCard = pickNextCard(pool);
+  document.getElementById('nextBtn').style.display = 'none';
+
+  const area = document.getElementById('cardArea');
+  area.innerHTML = '';
+
+  const topicLabel = document.createElement('div');
+  topicLabel.className = 'card-topic';
+  topicLabel.textContent = currentCard.tema;
+  area.appendChild(topicLabel);
+
+  if(currentCard.tipo === 'mcq') renderMCQ(area, currentCard);
+  else if(currentCard.tipo === 'tf') renderTF(area, currentCard);
+  else renderFlash(area, currentCard);
+}
+
+function renderMCQ(area, card){
+  const q = document.createElement('div');
+  q.className = 'question';
+  q.textContent = card.pregunta;
+  area.appendChild(q);
+
+  const opts = document.createElement('div');
+  opts.className = 'options';
+  card.opciones.forEach((text, idx)=>{
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.textContent = text;
+    btn.onclick = ()=> answerMCQ(idx, card, opts);
+    opts.appendChild(btn);
+  });
+  area.appendChild(opts);
+
+  const fb = document.createElement('div');
+  fb.className = 'feedback-msg';
+  fb.id = 'feedbackMsg';
+  area.appendChild(fb);
+}
+
+function answerMCQ(idx, card, optsEl){
+  const buttons = optsEl.querySelectorAll('.opt-btn');
+  buttons.forEach(b=> b.disabled = true);
+  const correct = idx === card.correcta;
+  buttons[card.correcta].classList.add('correct');
+  if(!correct) buttons[idx].classList.add('incorrect');
+
+  const fb = document.getElementById('feedbackMsg');
+  fb.className = 'feedback-msg ' + (correct ? 'ok' : 'no');
+  const prefix = correct ? '¡Correcto! ✨ ' : 'Era otra. ';
+  fb.textContent = prefix + (card.explicacion || '');
+
+  answerCard(card, correct ? 4 : 2);
+  document.getElementById('nextBtn').style.display = 'block';
+}
+
+function renderTF(area, card){
+  const q = document.createElement('div');
+  q.className = 'question';
+  q.textContent = card.pregunta;
+  area.appendChild(q);
+
+  const opts = document.createElement('div');
+  opts.className = 'options';
+  [['Verdadero', true], ['Falso', false]].forEach(([label, val])=>{
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.textContent = label;
+    btn.onclick = ()=> answerTF(val, card, opts);
+    opts.appendChild(btn);
+  });
+  area.appendChild(opts);
+
+  const fb = document.createElement('div');
+  fb.className = 'feedback-msg';
+  fb.id = 'feedbackMsg';
+  area.appendChild(fb);
+}
+
+function answerTF(val, card, optsEl){
+  const buttons = optsEl.querySelectorAll('.opt-btn');
+  buttons.forEach(b=> b.disabled = true);
+  const correct = val === card.correcta;
+  const correctIdx = card.correcta === true ? 0 : 1;
+  buttons[correctIdx].classList.add('correct');
+  if(!correct) buttons[correctIdx === 0 ? 1 : 0].classList.add('incorrect');
+
+  const fb = document.getElementById('feedbackMsg');
+  fb.className = 'feedback-msg ' + (correct ? 'ok' : 'no');
+  const prefix = correct ? '¡Correcto! ✨ ' : ('Era ' + (card.correcta ? 'Verdadero' : 'Falso') + '. ');
+  fb.textContent = prefix + (card.explicacion || '');
+
+  answerCard(card, correct ? 4 : 2);
+  document.getElementById('nextBtn').style.display = 'block';
+}
+
+function renderFlash(area, card){
+  const wrap = document.createElement('div');
+  wrap.className = 'flash-face';
+
+  const front = document.createElement('div');
+  front.className = 'flash-front';
+  front.textContent = card.frente;
+  wrap.appendChild(front);
+
+  const hint = document.createElement('div');
+  hint.className = 'flash-hint';
+  hint.textContent = 'Pensá la respuesta y tocá para revelar';
+  wrap.appendChild(hint);
+
+  const flipBtn = document.createElement('button');
+  flipBtn.className = 'flip-btn';
+  flipBtn.textContent = 'Ver respuesta';
+  flipBtn.onclick = ()=>{
+    hint.style.display = 'none';
+    flipBtn.style.display = 'none';
+
+    const back = document.createElement('div');
+    back.className = 'flash-back';
+    back.textContent = card.dorso;
+    wrap.insertBefore(back, flipBtn);
+
+    const rateGrid = document.createElement('div');
+    rateGrid.className = 'rate-grid';
+    [
+      ['Otra vez', 'rate-again', 1],
+      ['Difícil', 'rate-hard', 3],
+      ['Bien', 'rate-good', 4],
+      ['Fácil', 'rate-easy', 5]
+    ].forEach(([label, cls, quality])=>{
+      const b = document.createElement('button');
+      b.className = 'rate-btn ' + cls;
+      b.textContent = label;
+      b.onclick = ()=>{
+        answerCard(card, quality);
+        rateGrid.querySelectorAll('button').forEach(x=> x.disabled = true);
+        document.getElementById('nextBtn').style.display = 'block';
+      };
+      rateGrid.appendChild(b);
+    });
+    wrap.appendChild(rateGrid);
+  };
+  wrap.appendChild(flipBtn);
+
+  area.appendChild(wrap);
+}
+
+/* ---------- PROGRESO ---------- */
+function renderProgress(){
+  renderHeatmap();
+  renderTopicTable();
+  renderWeakList();
+}
+
+function renderHeatmap(){
+  const container = document.getElementById('heatmapGrid');
+  container.innerHTML = '';
+  const totalDays = 70;
+  const start = addDays(todayISO(), -(totalDays-1));
+  const startDow = new Date(start+'T00:00:00').getDay();
+
+  for(let i=0;i<startDow;i++){
+    const empty = document.createElement('div');
+    empty.className = 'heat-cell';
+    empty.style.visibility = 'hidden';
+    container.appendChild(empty);
+  }
+
+  for(let i=0;i<totalDays;i++){
+    const dateISO = addDays(start, i);
+    const count = (progress.dailyLog[dateISO]||{}).answered || 0;
+    let level = 0;
+    if(count >= 20) level = 4;
+    else if(count >= 10) level = 3;
+    else if(count >= 5) level = 2;
+    else if(count >= 1) level = 1;
+    const cell = document.createElement('div');
+    cell.className = 'heat-cell level-' + level;
+    cell.title = dateISO + ': ' + count + ' respondidas';
+    container.appendChild(cell);
+  }
+}
+
+function renderTopicTable(){
+  const stats = topicStats();
+  const tbody = document.getElementById('topicTableBody');
+  tbody.innerHTML = '';
+  Object.entries(stats).forEach(([tema, s])=>{
+    const acc = s.seen ? Math.round(s.correct/s.seen*100) : null;
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + tema + '</td>' +
+      '<td>' + s.mastered + '</td>' +
+      '<td>' + s.learning + '</td>' +
+      '<td>' + s.nuevo + '</td>' +
+      '<td>' + (acc===null ? '—' : acc+'%') + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function renderWeakList(){
+  const list = document.getElementById('weakList');
+  list.innerHTML = '';
+
+  const items = CONTENT
+    .filter(c=> progress.cards[c.id] && progress.cards[c.id].timesSeen >= 1)
+    .map(c=>{
+      const st = progress.cards[c.id];
+      return { card:c, st, acc: st.timesCorrect / st.timesSeen };
+    })
+    .filter(x=> x.acc < 1 || x.st.ease < 2.3)
+    .sort((a,b)=> (a.acc - b.acc) || (a.st.ease - b.st.ease))
+    .slice(0, 5);
+
+  if(!items.length){
+    list.innerHTML = '<p class="about-text">Todavía no hay suficientes datos para detectar puntos débiles. ¡Seguí estudiando!</p>';
+    return;
+  }
+
+  items.forEach(({card, acc})=>{
+    const div = document.createElement('div');
+    div.className = 'weak-item';
+    const text = card.pregunta || card.frente;
+    div.innerHTML =
+      '<div class="weak-item-tema">' + card.tema + '</div>' +
+      '<div class="weak-item-text">' + text + '</div>' +
+      '<div class="weak-item-acc">' + Math.round(acc*100) + '% de aciertos</div>';
+    list.appendChild(div);
+  });
+}
+
+/* ---------- Navegacion ---------- */
+function goTo(page){
+  document.querySelectorAll('.page').forEach(p=> p.classList.toggle('active', p.id === 'page-'+page));
+  document.querySelectorAll('.nav-btn').forEach(b=> b.classList.toggle('active', b.dataset.page === page));
+
+  if(page === 'home') renderHome();
+  if(page === 'study'){
+    renderTopicChips();
+    if(!currentCard) renderCard();
+    updateTodayPill();
+  }
+  if(page === 'progress') renderProgress();
+  if(page === 'settings'){
+    document.getElementById('newCardsSlider').value = progress.settings.newCardsPerDay;
+    document.getElementById('newCardsVal').textContent = progress.settings.newCardsPerDay;
+  }
+  window.scrollTo(0,0);
+}
+
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.onclick = ()=> goTo(btn.dataset.page);
+});
+document.getElementById('ctaStudy').onclick = ()=> goTo('study');
+document.getElementById('nextBtn').onclick = renderCard;
+
+document.getElementById('newCardsSlider').oninput = (e)=>{
+  progress.settings.newCardsPerDay = parseInt(e.target.value, 10);
+  document.getElementById('newCardsVal').textContent = progress.settings.newCardsPerDay;
+  saveProgress();
+};
+
+document.getElementById('exportBtn').onclick = ()=>{
+  const blob = new Blob([JSON.stringify(progress, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cosmostudy_progreso_' + todayISO() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+document.getElementById('resetBtn').onclick = ()=>{
+  if(confirm('¿Reiniciar todo el progreso? Esta acción no se puede deshacer.')){
+    localStorage.removeItem(STORAGE_KEY);
+    progress = loadProgress();
+    currentCard = null;
+    studyFilter = null;
+    goTo('home');
+  }
+};
+
+updateHeader();
+goTo('home');
+</script>
+</body>
+</html>

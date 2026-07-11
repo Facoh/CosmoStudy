@@ -376,7 +376,10 @@
 
       <div class="section-block">
         <div class="section-head">Datos</div>
+        <button class="settings-btn" id="shareBtn">📤 Compartir progreso (WhatsApp/Drive/etc.)</button>
         <button class="settings-btn" id="exportBtn">⬇️ Exportar progreso (JSON)</button>
+        <button class="settings-btn" id="importBtn">⬆️ Importar progreso (restaurar backup)</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none">
         <button class="settings-btn danger" id="resetBtn">🗑️ Reiniciar todo el progreso</button>
       </div>
 
@@ -1074,14 +1077,76 @@ document.getElementById('newCardsSlider').oninput = (e)=>{
   saveProgress();
 };
 
-document.getElementById('exportBtn').onclick = ()=>{
+function progressFile(){
   const blob = new Blob([JSON.stringify(progress, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
+  return new File([blob], 'cosmostudy_progreso_' + todayISO() + '.json', {type:'application/json'});
+}
+
+document.getElementById('exportBtn').onclick = ()=>{
+  const file = progressFile();
+  const url = URL.createObjectURL(file);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'cosmostudy_progreso_' + todayISO() + '.json';
+  a.download = file.name;
   a.click();
   URL.revokeObjectURL(url);
+};
+
+document.getElementById('shareBtn').onclick = async ()=>{
+  const file = progressFile();
+  if(navigator.canShare && navigator.canShare({ files:[file] })){
+    try{
+      await navigator.share({
+        files:[file],
+        title:'Backup de CosmoStudy',
+        text:'Backup de progreso de CosmoStudy — ' + todayISO()
+      });
+    }catch(e){ /* el usuario cancelo el share, no hacer nada */ }
+  } else {
+    showToast('Tu navegador no soporta compartir directo, usá "Exportar"');
+  }
+};
+
+document.getElementById('importBtn').onclick = ()=>{
+  document.getElementById('importFile').click();
+};
+
+document.getElementById('importFile').onchange = (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    let data;
+    try{ data = JSON.parse(reader.result); }
+    catch(err){ alert('Ese archivo no es un backup válido de CosmoStudy.'); return; }
+
+    if(typeof data.xp !== 'number' || typeof data.cards !== 'object'){
+      alert('Ese archivo no tiene el formato de un backup de CosmoStudy.');
+      return;
+    }
+
+    if(!confirm('Esto va a reemplazar el progreso actual por el del backup (' + (data.totalAnswered||0) + ' preguntas respondidas, nivel ' + levelFromXp(data.xp||0) + '). ¿Continuar?')){
+      e.target.value = '';
+      return;
+    }
+
+    data.cards = data.cards || {};
+    data.dailyLog = data.dailyLog || {};
+    data.settings = data.settings || { newCardsPerDay:6 };
+    data.totalAnswered = data.totalAnswered || 0;
+    data.totalCorrect = data.totalCorrect || 0;
+    data.streak = data.streak || 0;
+    data.longestStreak = data.longestStreak || 0;
+
+    progress = data;
+    saveProgress();
+    currentCard = null;
+    updateHeader();
+    goTo('home');
+    showToast('Progreso restaurado ✨');
+    e.target.value = '';
+  };
+  reader.readAsText(file);
 };
 
 document.getElementById('resetBtn').onclick = ()=>{

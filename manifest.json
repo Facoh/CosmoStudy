@@ -1,0 +1,14 @@
+{
+  "name": "CosmoStudy",
+  "short_name": "CosmoStudy",
+  "description": "Estudiar cosmetología con repaso espaciado y gamificación.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffe4f0",
+  "theme_color": "#ff6fa5",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
